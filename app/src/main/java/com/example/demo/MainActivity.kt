@@ -3,41 +3,42 @@ package com.example.demo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.demo.ui.theme.DemoTheme
+import app.cash.molecule.RecompositionClock
+import app.cash.molecule.launchMolecule
+import com.example.demo.data.RandomService
+import com.example.demo.presenter.Change
+import com.example.demo.presenter.CounterEvent
+import com.example.demo.presenter.CounterModel
+import com.example.demo.presenter.CounterPresenter
+import com.example.demo.presenter.Randomize
+import com.example.demo.ui.component.CounterApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val scope = CoroutineScope(Main)
+    private val randomService = RandomService.create()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            DemoTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Greeting("Android")
-                }
-            }
+
+        val event = MutableSharedFlow<CounterEvent>()
+        val modelFlow: Flow<CounterModel> = scope.launchMolecule(RecompositionClock.Immediate) {
+            CounterPresenter(event, randomService)
         }
-    }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    DemoTheme {
-        Greeting("Android")
+        setContent {
+            CounterApp(
+                modelFlow = modelFlow,
+                onIncreaseOne = { scope.launch { event.emit(Change(1)) } },
+                onIncreaseTen = { scope.launch { event.emit(Change(10)) } },
+                onDecreaseOne = { scope.launch { event.emit(Change(-1)) } },
+                onDecreaseTen = { scope.launch { event.emit(Change(-10)) } },
+                onRandomize = { scope.launch { event.emit(Randomize) } }
+            )
+        }
     }
 }
