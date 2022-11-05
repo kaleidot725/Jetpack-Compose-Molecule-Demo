@@ -28,6 +28,31 @@ This application is implemented by molecule.
 ### View(Jetpack Compose UI)
 
 ```kotlin
+class MainActivity : ComponentActivity() {
+    private val scope = CoroutineScope(Main)
+    private val randomService = RandomService.create()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val event = MutableSharedFlow<CounterEvent>()
+        val modelFlow: Flow<CounterModel> = scope.launchMolecule(RecompositionClock.Immediate) {
+            CounterPresenter(event, randomService)
+        }
+
+        setContent {
+            CounterApp(
+                modelFlow = modelFlow,
+                onIncreaseOne = { scope.launch { event.emit(Change(1)) } },
+                onIncreaseTen = { scope.launch { event.emit(Change(10)) } },
+                onDecreaseOne = { scope.launch { event.emit(Change(-1)) } },
+                onDecreaseTen = { scope.launch { event.emit(Change(-10)) } },
+                onRandomize = { scope.launch { event.emit(Randomize) } }
+            )
+        }
+    }
+}
+
 @Composable
 fun CounterApp(
     modelFlow: Flow<CounterModel>,
