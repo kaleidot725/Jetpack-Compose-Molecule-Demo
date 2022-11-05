@@ -19,12 +19,156 @@ This application has next features.
 - Count numbers.
 - Randomize numbers.
 
-## 🏢Architecture
+## 🏢Implementation
 
 This application is implemented by molecule.
 
 ![](./docs/architecture.drawio.svg)
 
+### View(Jetpack Compose UI)
+
+```kotlin
+@Composable
+fun CounterApp(
+    modelFlow: Flow<CounterModel>,
+    onIncreaseOne: () -> Unit,
+    onIncreaseTen: () -> Unit,
+    onDecreaseOne: () -> Unit,
+    onDecreaseTen: () -> Unit,
+    onRandomize: () -> Unit
+) {
+    val model by modelFlow.collectAsState(CounterModel())
+
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .size(150.dp)
+                .align(Alignment.CenterHorizontally)
+        ) {
+            if (model.loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .align(Alignment.Center)
+                )
+            } else {
+                Text(
+                    text = model.value.toString(),
+                    fontSize = 100.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center)
+                )
+            }
+        }
+
+        Button(onClick = onIncreaseOne, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "INCREASE ONE")
+        }
+
+        Button(onClick = onIncreaseTen, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "INCREASE TEN")
+        }
+
+        Button(onClick = onDecreaseOne, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "DECREASE ONE")
+        }
+
+        Button(onClick = onDecreaseTen, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "DECREASE TEN")
+        }
+
+        Button(onClick = onRandomize, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "RANDOMIZE")
+        }
+    }
+}
+```
+
+### Molecule Presenter(Using Jetpack Compose)
+
+```kotlin
+sealed interface CounterEvent
+data class Change(val delta: Int) : CounterEvent
+object Randomize : CounterEvent
+
+data class CounterModel(
+    val value: Int = 0,
+    val loading: Boolean = false,
+)
+
+@Composable
+fun CounterPresenter(
+    events: Flow<CounterEvent>,
+    randomService: RandomService,
+): CounterModel {
+    var count by remember { mutableStateOf(0) }
+    var loading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        events.collect { event ->
+            when (event) {
+                is Change -> {
+                    count += event.delta
+                }
+
+                Randomize -> {
+                    loading = true
+                    launch {
+                        count = randomService.get(-20, 20)
+                        loading = false
+                    }
+                }
+            }
+        }
+    }
+
+    return CounterModel(count, loading)
+}
+```
+
+### Model(HTTP Client)
+
+```kotlin
+interface RandomApi {
+    @GET("integers/?num=1&col=1&base=10&format=plain")
+    suspend fun get(
+        @Query("min") min: Int,
+        @Query("max") max: Int,
+    ): String
+}
+
+interface RandomService {
+    suspend fun get(min: Int, max: Int): Int
+    companion object {
+        fun create(): RandomService {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://www.random.org/")
+                .client(
+                    OkHttpClient.Builder()
+                        .addInterceptor(
+                            HttpLoggingInterceptor { Log.d("HTTP", it) }
+                                .also { it.level = HttpLoggingInterceptor.Level.BASIC },
+                        )
+                        .build(),
+                )
+                .addConverterFactory(ScalarsConverterFactory.create())
+                .build()
+
+            val api = retrofit.create<RandomApi>()
+
+            return object : RandomService {
+                override suspend fun get(min: Int, max: Int): Int {
+                    return api.get(min, max).trim().toInt()
+                }
+            }
+        }
+    }
+}
+
+```
 
 ## 📚Library
 
