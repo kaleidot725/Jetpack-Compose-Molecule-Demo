@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val event = MutableSharedFlow<CounterEvent>()
-        val modelFlow: Flow<CounterModel> = scope.launchMolecule(RecompositionClock.Immediate) {
+        val modelFlow: Flow<CounterModel> = scope.launchMolecule(mode = RecompositionMode.Immediate) {
             CounterPresenter(event, randomService)
         }
 

@@ -3,7 +3,7 @@ package com.example.demo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import app.cash.molecule.RecompositionClock
+import app.cash.molecule.RecompositionMode
 import app.cash.molecule.launchMolecule
 import com.example.demo.data.RandomService
 import com.example.demo.presenter.Change
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val event = MutableSharedFlow<CounterEvent>()
-        val modelFlow: Flow<CounterModel> = scope.launchMolecule(RecompositionClock.Immediate) {
+        val modelFlow: Flow<CounterModel> = scope.launchMolecule(mode = RecompositionMode.Immediate) {
             CounterPresenter(event, randomService)
         }
 
