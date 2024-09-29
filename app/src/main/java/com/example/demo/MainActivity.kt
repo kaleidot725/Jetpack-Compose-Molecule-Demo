@@ -11,7 +11,7 @@ import com.example.demo.presenter.CounterEvent
 import com.example.demo.presenter.CounterModel
 import com.example.demo.presenter.CounterPresenter
 import com.example.demo.presenter.Randomize
-import com.example.demo.ui.component.CounterApp
+import com.example.demo.ui.CounterApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.flow.Flow
